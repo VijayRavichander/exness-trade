@@ -16,7 +16,7 @@ function startPriceStreaming() {
         if (payload.length > 0) {
             const redis_payload = {payload: payload}
             console.log(redis_payload)
-            await redis.xadd('price_stream', 'MAXLEN', '~', '10000', '*', 'data', JSON.stringify(redis_payload))
+            await redis.xadd('events_stream', 'MAXLEN', '~', '10000', '*', 'data', JSON.stringify(redis_payload))
         }
     }, 1000);
 }
