@@ -1,53 +1,35 @@
-import express from "express";
+import express, { type Request, type Response } from "express";
 import cors from "cors";
-import { redis_events_todo } from "./lib/redis";
-import { REDIS_EVENTS_TODO_STREAM } from "./lib/config";
+import { redisService } from "./lib/redis";
+import { REDIS_EVENTS_TODO_STREAM, REDIS_EVENTS_DONE_STREAM } from "./lib/config";
 import { v4 as uuidv4 } from "uuid";
-import { ingestFromProcessedEventsStream, pendingRequests } from "./lib/utils";
+import { Resend } from "resend";
+import authRoutes from "./routes/auth";
+export const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
 
 app.use(express.json());
+app.use(cors());
 
-app.post("/trade/open", async (req, res) => {
+// Use auth routes
+app.use("/api/v1", authRoutes);
+
+app.post("/trade/open", async (req: Request, res: Response) => {
+
   // [TODO: Add Auth]
-
   const { asset, qty } = req.body;
 
   const tripId = uuidv4();
 
-  // [TODO: User Details, ]
+  // [TODO: User Details,]
   const redis_payload = {
     asset,
     qty,
-    tripId,
-    type: "user"
+    type: "user",
   };
 
-  
-  const processedPromise = new Promise(async (resolve, reject) => {
-    pendingRequests.set(tripId, {
-      resolve,
-      reject,
-      timestamp: Date.now(),
-    });
-
-    setTimeout(() => {
-      if (pendingRequests.has(tripId)) {
-        pendingRequests.delete(tripId);
-        reject(new Error("Processing Timeout"));
-      }
-    }, 1000 * 5);
-  });
-
-  await redis_events_todo.xadd(
-    REDIS_EVENTS_TODO_STREAM,
-    "*",
-    "data",
-    JSON.stringify(redis_payload)
-  );
-
-  const processedResult = await processedPromise;
+  const processedResult = await redisService.addToStream(REDIS_EVENTS_TODO_STREAM, redis_payload)
 
   res.json({
     status: "success",
@@ -56,9 +38,7 @@ app.post("/trade/open", async (req, res) => {
   });
 });
 
-app.use(cors());
-
-ingestFromProcessedEventsStream();
+redisService.startProcessedEventsListener(REDIS_EVENTS_DONE_STREAM);
 
 app.listen(3005, () => {
   console.log("Listening on PORT: 3005");

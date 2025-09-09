@@ -1,15 +1,6 @@
-# server
 
-To install dependencies:
 
-```bash
-bun install
-```
-
-To run:
-
-```bash
-bun run index.ts
-```
-
-This project was created using `bun init` in bun v1.2.2. [Bun](https://bun.sh) is a fast all-in-one JavaScript runtime.
+Spec Sheet
+1. New User - [DONE] 
+2. Existing User - Return Their Balances & Open Orders [DONE] , Closed Orders from DB [TODO]
+3. 

@@ -1,13 +1,10 @@
 import { redis } from "./lib/redis";
+import { engine } from "./lib/engine";
 
 
-
-async function processIncomingMessage(streamName: string, messages: [id: string, fields: string[]][]): Promise<any> {
-
-    const user_data = await JSON.parse(messages[0][1][1])
-
-    return user_data;
-
+async function parseMessage(messages: [id: string, fields: string[]][]): Promise<any> {
+    const data = await JSON.parse(messages[0][1][1])
+    return data;
 }
 
 async function ingestFromEventsStream() {
@@ -27,12 +24,13 @@ async function ingestFromEventsStream() {
 
             if(results && results.length > 0){
                 const [streamName, messages] = results[0];
-                
 
-                const user_data = await processIncomingMessage(streamName, messages);
-                
+                const payload = await engine.router(messages);
+
+                engine.logPrices()
+
                 await redis.xadd('events_processed', '*', 'data', 
-                    JSON.stringify(user_data)
+                    JSON.stringify(payload)
                 )
             }
         }catch(error){

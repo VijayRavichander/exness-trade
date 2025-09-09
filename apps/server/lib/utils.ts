@@ -1,4 +1,9 @@
 import { redis_events_processed } from "./redis"
+import { resend } from "..";
+import { SERVER_URL } from "./config";
+import { generateLinkToken } from "./token";
+import {type CreateEmailResponseSuccess, type ErrorResponse } from 'resend';
+
 
 export const pendingRequests = new Map();
 
@@ -10,36 +15,19 @@ async function processIncomingMessage(streamName: string, messages: [id: string,
 
 }
 
-export async function ingestFromProcessedEventsStream() {
-    // Starts from the latest 
-    // [TODO: Add a LastID from store/snapshot/file to handle server shutdown]
-    let lastId = "$"
 
-    // console.log('[ENGINE RUNNING...')
+export async function sendResendEmail(email: string): Promise<{data: CreateEmailResponseSuccess | null, error: ErrorResponse | null}> {
 
-    while(true){
-        try {
-            const results = await redis_events_processed.xread(
-                'COUNT', 1, 
-                'BLOCK', 0,
-                'STREAMS', 'events_processed', lastId
-            );
+    const token = generateLinkToken(email);
 
-            if(results && results.length > 0){
-                const [streamName, messages] = results[0];
+    const link = `${SERVER_URL}/api/v1/signin/post?token=${token}`;
+  
+    const { data, error } = await resend.emails.send({
+      from: "Acme <onboarding@resend.dev>",
+      to: [email],
+      subject: "Your Login Link",
+      html: `<strong>Here is your link: ${link}</strong>`,
+    });
 
-                const user_data = await processIncomingMessage(streamName, messages);
-                
-                const { tripId } = user_data
-                
-                if(pendingRequests.has(tripId)){
-                    const {resolve} = pendingRequests.get(tripId);
-                    pendingRequests.delete(tripId);
-                    resolve(user_data);
-                }
-            }
-        }catch(error){
-            console.log("Error while Ingesting from Stream", error)
-        }
-    }
+    return {data, error}
 }
