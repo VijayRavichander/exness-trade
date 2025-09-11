@@ -1,7 +1,10 @@
 import express, { type Request, type Response } from "express";
 import cors from "cors";
 import { redisService } from "./lib/redis";
-import { REDIS_EVENTS_TODO_STREAM, REDIS_EVENTS_DONE_STREAM } from "./lib/config";
+import {
+  REDIS_EVENTS_TODO_STREAM,
+  REDIS_EVENTS_DONE_STREAM,
+} from "./lib/config";
 import { v4 as uuidv4 } from "uuid";
 import { Resend } from "resend";
 import authRoutes from "./routes/auth";
@@ -16,25 +19,30 @@ app.use(cors());
 app.use("/api/v1", authRoutes);
 
 app.post("/trade/open", async (req: Request, res: Response) => {
-
   // [TODO: Add Auth]
-  const { asset, qty } = req.body;
+  const { asset, qty, type, orderId } = req.body;
 
   const tripId = uuidv4();
+
+  const email = "test@gmail.com"; // Parse From Token
 
   // [TODO: User Details,]
   const redis_payload = {
     asset,
     qty,
-    type: "user",
+    email,
+    type,
+    orderId,
   };
 
-  const processedResult = await redisService.addToStream(REDIS_EVENTS_TODO_STREAM, redis_payload)
+  const processedResult = await redisService.addToStream(
+    REDIS_EVENTS_TODO_STREAM,
+    redis_payload
+  );
 
   res.json({
-    status: "success",
     tripId: tripId,
-    processedResult: processedResult,
+    ...processedResult,
   });
 });
 

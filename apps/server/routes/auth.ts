@@ -63,7 +63,7 @@ router.get("/signin/post", async (req: Request, res: Response) => {
 
     const payload = {
         'email': "vijaypreetham1@gmail.com",
-        'type': "addUser"
+        'type': "createOrGetUser"
     }
 
     const eningeResponse = await redisService.addToStream(REDIS_EVENTS_TODO_STREAM, payload);

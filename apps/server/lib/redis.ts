@@ -90,10 +90,39 @@ export class RedisService {
         if (results && results.length > 0) {
           const [streamName, messages] = results[0];
 
-          for (const [messageId, fields] of messages) {
+          console.log("messages", messages);
+          
+          // Check if message data exists and is not empty
+          if (messages && messages.length > 0 && messages[0] && messages[0][1] && messages[0][1][1]) {
             try {
-              const userData = JSON.parse(fields[1]);
-              const { tripId } = userData;
+              const fieldEntries = messages[0][1] as any[];
+              const fieldMap: Record<string, any> = {};
+              for (let i = 0; i < fieldEntries.length; i += 2) {
+                fieldMap[String(fieldEntries[i])] = fieldEntries[i + 1];
+              }
+
+              const rawData = fieldMap["data"];
+              if (typeof rawData !== "string") {
+                console.warn("Processed message missing 'data' string; skipping");
+                this.processedRedisOffset = messages[0][0];
+                continue;
+              }
+
+              const trimmed = rawData.trim();
+              if (trimmed.length === 0) {
+                console.log("Skipping empty message");
+                this.processedRedisOffset = messages[0][0];
+                continue;
+              }
+
+              const userData = JSON.parse(trimmed);
+              const { tripId } = userData ?? {};
+
+              if (!tripId) {
+                console.warn("Processed message missing 'tripId'; skipping");
+                this.processedRedisOffset = messages[0][0];
+                continue;
+              }
 
               if (this.pendingRequests.has(tripId)) {
                 const { resolve } = this.pendingRequests.get(tripId)!;
@@ -101,9 +130,10 @@ export class RedisService {
                 resolve(userData);
               }
 
-              this.processedRedisOffset = messageId;
+              this.processedRedisOffset = messages[0][0];
             } catch (parseError) {
               console.error("Error parsing processed message:", parseError);
+              continue;
             }
           }
         }
