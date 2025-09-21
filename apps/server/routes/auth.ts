@@ -6,10 +6,10 @@ import { CLIENT_URL, REDIS_EVENTS_TODO_STREAM } from "../lib/config";
 import { v4 as uuidv4 } from "uuid";
 import { redisService } from "../lib/redis";
 
-const router = express.Router();
+const authRouter = express.Router();
 
 // Sign in route
-router.post("/signin", async (req: Request, res: Response) => {
+authRouter.post("/signin", async (req: Request, res: Response) => {
   const { email, name } = req.body;
 
   const exisitingUser = await db.user.findUnique({
@@ -34,7 +34,7 @@ router.post("/signin", async (req: Request, res: Response) => {
 });
 
 // Sign up route
-router.post("/signup", async (req: Request, res: Response) => {
+authRouter.post("/signup", async (req: Request, res: Response) => {
   const { email, name } = req.body;
 
   const exisitingUser = await db.user.findUnique({
@@ -58,7 +58,7 @@ router.post("/signup", async (req: Request, res: Response) => {
 });
 
 // Sign in post (email link verification) route
-router.get("/signin/post", async (req: Request, res: Response) => {
+authRouter.get("/signin/post", async (req: Request, res: Response) => {
 
 
     const payload = {
@@ -134,4 +134,4 @@ router.get("/signin/post", async (req: Request, res: Response) => {
 //   }
 });
 
-export default router;
+export default authRouter;
